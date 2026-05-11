@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	DefaultPanelGitHubRepository = "https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
+	DefaultPanelGitHubRepository = "https://github.com/molicherry/Cli-Proxy-API-Management-Center"
 	DefaultPprofAddr             = "127.0.0.1:8316"
 	DefaultAuthDir               = "~/.cli-proxy-api"
 )
@@ -107,6 +107,9 @@ type Config struct {
 
 	// GeminiKey defines Gemini API key configurations with optional routing overrides.
 	GeminiKey []GeminiKey `yaml:"gemini-api-key" json:"gemini-api-key"`
+
+	// QoderKey defines a list of Qoder API key configurations as specified in the YAML configuration file.
+	QoderKey []QoderKey `yaml:"qoder-api-key" json:"qoder-api-key"`
 
 	// Codex defines a list of Codex API key configurations as specified in the YAML configuration file.
 	CodexKey []CodexKey `yaml:"codex-api-key" json:"codex-api-key"`
@@ -523,6 +526,26 @@ type GeminiModel struct {
 func (m GeminiModel) GetName() string  { return m.Name }
 func (m GeminiModel) GetAlias() string { return m.Alias }
 
+type QoderKey struct {
+	APIKey         string            `yaml:"api-key" json:"api-key"`
+	Priority       int               `yaml:"priority,omitempty" json:"priority,omitempty"`
+	Prefix         string            `yaml:"prefix,omitempty" json:"prefix,omitempty"`
+	BaseURL        string            `yaml:"base-url,omitempty" json:"base-url,omitempty"`
+	ProxyURL       string            `yaml:"proxy-url,omitempty" json:"proxy-url,omitempty"`
+	Models         []QoderModel      `yaml:"models,omitempty" json:"models,omitempty"`
+	Headers        map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+	ExcludedModels []string          `yaml:"excluded-models,omitempty" json:"excluded-models,omitempty"`
+	DisableCooling bool              `yaml:"disable-cooling,omitempty" json:"disable-cooling,omitempty"`
+}
+
+func (k QoderKey) GetAPIKey() string  { return k.APIKey }
+func (k QoderKey) GetBaseURL() string { return k.BaseURL }
+
+type QoderModel struct {
+	Name  string `yaml:"name" json:"name"`
+	Alias string `yaml:"alias,omitempty" json:"alias,omitempty"`
+}
+
 // OpenAICompatibility represents the configuration for OpenAI API compatibility
 // with external providers, allowing model aliases to be routed through OpenAI API format.
 type OpenAICompatibility struct {
@@ -715,6 +738,9 @@ func LoadConfigOptional(configFile string, optional bool) (*Config, error) {
 
 	// Sanitize Claude key headers
 	cfg.SanitizeClaudeKeys()
+
+	// Sanitize Qoder keys
+	cfg.SanitizeQoderKeys()
 
 	// Sanitize OpenAI compatibility providers: drop entries without base-url
 	cfg.SanitizeOpenAICompatibility()
@@ -949,6 +975,33 @@ func (cfg *Config) SanitizeGeminiKeys() {
 		out = append(out, entry)
 	}
 	cfg.GeminiKey = out
+}
+
+func (cfg *Config) SanitizeQoderKeys() {
+	if cfg == nil || len(cfg.QoderKey) == 0 {
+		return
+	}
+	seen := make(map[string]struct{}, len(cfg.QoderKey))
+	out := make([]QoderKey, 0, len(cfg.QoderKey))
+	for i := range cfg.QoderKey {
+		e := cfg.QoderKey[i]
+		e.APIKey = strings.TrimSpace(e.APIKey)
+		if e.APIKey == "" {
+			continue
+		}
+		e.Prefix = normalizeModelPrefix(e.Prefix)
+		e.BaseURL = strings.TrimSpace(e.BaseURL)
+		e.ProxyURL = strings.TrimSpace(e.ProxyURL)
+		e.Headers = NormalizeHeaders(e.Headers)
+		e.ExcludedModels = NormalizeExcludedModels(e.ExcludedModels)
+		uniqueKey := e.APIKey + "|" + e.BaseURL
+		if _, exists := seen[uniqueKey]; exists {
+			continue
+		}
+		seen[uniqueKey] = struct{}{}
+		out = append(out, e)
+	}
+	cfg.QoderKey = out
 }
 
 func normalizeModelPrefix(prefix string) string {

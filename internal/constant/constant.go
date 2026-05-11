@@ -24,4 +24,7 @@ const (
 
 	// Antigravity represents the Antigravity response format identifier.
 	Antigravity = "antigravity"
+
+	// Qoder represents the Qoder provider identifier.
+	Qoder = "qoder"
 )

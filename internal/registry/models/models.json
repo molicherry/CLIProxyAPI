@@ -2064,5 +2064,37 @@
         ]
       }
     }
+  ],
+  "qoder": [
+    {
+      "id": "auto",
+      "object": "model",
+      "created": 0,
+      "owned_by": "qoder"
+    },
+    {
+      "id": "efficient",
+      "object": "model",
+      "created": 0,
+      "owned_by": "qoder"
+    },
+    {
+      "id": "performance",
+      "object": "model",
+      "created": 0,
+      "owned_by": "qoder"
+    },
+    {
+      "id": "ultimate",
+      "object": "model",
+      "created": 0,
+      "owned_by": "qoder"
+    },
+    {
+      "id": "lite",
+      "object": "model",
+      "created": 0,
+      "owned_by": "qoder"
+    }
   ]
 }
